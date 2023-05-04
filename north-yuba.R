@@ -6,6 +6,11 @@ library(here)
 library(sf)
 library(dplyr)
 
+# script
+#C:\Users\Korte\Documents\GitHub\north-yuba
+# Data
+#D:\north-yuba_data\north-yuba_data
+
 # data-dir.txt is currently in C:/GitHub/north-yuba referencing the D: drive
 # which holds all the data from the Box
 # doesn't work
@@ -19,7 +24,7 @@ baseDir <- "D:/GIS/Yuba GIS"
 # read in raster data
 dem <- rast(paste0(baseDir, "/dem.tif"))
 sri = rast(paste0(baseDir, "/sri.tif"))
-
+slope = rast(paste0(baseDir, "/slope_degrees.tif"))
 
 # read in vector data
 # files in the NorthYuba_DataRequest.gdb exported into shapefiles in ArcMap
@@ -33,14 +38,15 @@ veg <- st_read(paste0(baseDir, "/NYLR_ExistingCondition_BaseProjectData.shp"))
 # roads
 roads <- st_read(paste0(baseDir, "/NYLR_RoadsWithCoreAttributes.shp"))
 
-# doesn't work
-#elev_int <- sf::st_intersection(elev, boundary)
+
 
 # mask to project boundary
 dem_mask <- mask(dem, boundary_vect)
-plot(elev_mask)
+plot(dem_mask)
 sri_mask <- mask(sri, boundary_vect)
 plot(sri_mask)
+slope_mask <- mask(slope, boundary_vect)
+
 
 #filter attributes of interest
 # keep these
@@ -81,6 +87,10 @@ road_final = bind_rows(rd1, rd2)
 
 
 
+
+
+
+#### slope 
 
 
 
