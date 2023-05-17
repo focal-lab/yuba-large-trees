@@ -41,8 +41,15 @@ boundary_transform = st_transform(boundary, 3310)
 # change to a vector for sf package
 boundary_vect = vect(boundary)
 # veg layer
-veg_path = file.path(datadir, "/spatial/raw/veg_existing_condition.kml")
+veg_path = file.path(datadir, "/spatial/raw/veg_existing_condition.gpkg")
 veg <- st_read(veg_path)
+
+# ^ this layer needed to be exported from the USFS GDB, then converted to Multipolygon using ogr2ogr on the command line. Reference: https://gis.stackexchange.com/questions/389814/r-st-centroid-geos-error-unknown-wkb-type-12
+# ogr2ogr -f "GPKG" /home/derek/Documents/repo-data-local/north-yuba_data/spatial/raw/veg_existing_condition_fixed.gpkg /home/derek/Documents/repo-data-local/north-yuba_data/spatial/raw/veg_existing_condition.gpkg -nlt "MULTIPOLYGON"
+
+
+library(gdalUtils)
+
 # roads
 roads = file.path(datadir, "/spatial/raw/roads_w_core_attr.gpkg")
 roads <- st_read(roads)
@@ -76,8 +83,7 @@ veg_foc = veg_foc |>
   select(BPU, CWHR_Type, Can_Cov, OS_TREE_DIAMETER_CLASS_1)
 
 veg_foc_union = st_union(veg_foc)
-                
-st_write(veg_foc, file.path(datadir, "temp/veg_final.gpkg"), delete_dsn = TRUE)
+st_write(veg_foc_union, file.path(datadir, "/spatial/raw/veg_existing_condition_focal.gpkg"))
 
 
 # remove these
