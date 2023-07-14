@@ -4,33 +4,16 @@
 library(terra)
 library(here)
 library(sf)
-library(dplyr)
+library(tidyverse)
 
-# script
-#C:\Users\Korte\Documents\GitHub\north-yuba
-# Data
-#D:\north-yuba_data\north-yuba_data
-
-# data-dir.txt is currently in C:/GitHub/north-yuba referencing the D: drive
-# which holds all the data from the Box
-# doesn't work
 datadir = readLines(here("data-dir.txt"))
 
-
 focal_area_path = file.path(datadir, "/spatial/raw/north_yuba_area.kml") # I couldn't get the layer embedded in the GPKG to open properly in R, so I had to use QGIS to export to KML so we can open it in R
-
-# 
-# setwd("D:/GIS/Yuba GIS")
-# # set baseDir
-# baseDir <- "D:/GIS/Yuba GIS"
 
 # read in raster data
 dem = rast(file.path(datadir, "spatial/intermediate/dem.tif"))
 sri = rast(file.path(datadir, "spatial/intermediate/sri.tif"))
 slope = rast(file.path(datadir, "spatial/intermediate/slope_degrees.tif"))
-# dem <- rast(paste0(baseDir, "/dem.tif"))
-# sri = rast(paste0(baseDir, "/sri.tif"))
-# slope = rast(paste0(baseDir, "/slope_degrees.tif"))
 
 # read in vector data
 # files in the NorthYuba_DataRequest.gdb exported into shapefiles in ArcMap
@@ -48,30 +31,37 @@ veg <- st_read(veg_path)
 # ogr2ogr -f "GPKG" /home/derek/Documents/repo-data-local/north-yuba_data/spatial/raw/veg_existing_condition_fixed.gpkg /home/derek/Documents/repo-data-local/north-yuba_data/spatial/raw/veg_existing_condition.gpkg -nlt "MULTIPOLYGON"
 
 
-library(gdalUtils)
-
 # roads
 roads = file.path(datadir, "/spatial/raw/roads_w_core_attr.gpkg")
 roads <- st_read(roads)
 roads = st_zm(roads)
 
+# roads 
+# select required columns
+roads <- roads %>% select("SYSTEM", "JURISDICTION", "OPER_MAINT_LEVEL", "OBJECTIVE_MAINT_LEVEL", "ROUTE_STATUS", "SERVICE_LIFE", "geom")
+table(roads$OPER_MAINT_LEVEL)
+
+roads = roads |>
+  filter((OPER_MAINT_LEVEL %in% c("2 - HIGH CLEARANCE VEHICLES", "3 - SUITABLE FOR PASSENGER CARS", "4 - MODERATE DEGREE OF USER COMFORT", "5 - HIGH DEGREE OF USER COMFORT")) | (JURISDICTION %in% c("C - COUNTY, PARISH, BOROUGH", "SH - STATE HIGHWAY"))) |>
+  filter(!(OBJECTIVE_MAINT_LEVEL %in% c("1 - BASIC CUSTODIAL CARE (CLOSED)", "D - DECOMMISSION"))) |>
+  filter(!(OPER_MAINT_LEVEL %in% c("0 - NOT MAINTAINED", "1 - BASIC CUSTODIAL CARE (CLOSED)")))
+
+st_write(roads, file.path(datadir, "temp/roads.gpkg"), delete_dsn = TRUE)
+
 road_buf300 = st_buffer(roads, 300) |> st_union()
-st_write(road_buf300, file.path(datadir, "temp/roadbuf.gpkg"), delete_dsn = TRUE)
+# st_write(road_buf300, file.path(datadir, "temp/roadbuf.gpkg"), delete_dsn = TRUE)
 
 road_buf100 = st_buffer(roads, 100) |> st_union()
 
 candidate_area = st_difference(road_buf300, road_buf100)
-st_write(candidate_area, file.path(datadir, "temp/candidate_area.gpkg"), delete_dsn = TRUE)
-
 candidate_area = st_simplify(candidate_area, dTolerance = 10)
 
+st_write(candidate_area, file.path(datadir, "temp/candidate_area.gpkg"), delete_dsn = TRUE)
 
-# mask to project boundary
-dem_mask <- mask(dem, boundary_vect)
-plot(dem_mask)
-sri_mask <- mask(sri, boundary_vect)
-plot(sri_mask)
-slope_mask <- mask(slope, boundary_vect)
+# mask env layers to project boundary
+dem_mask <- mask(dem, boundary_vect |> project(crs(dem)))
+sri_mask <- mask(sri, boundary_vect |> project(crs(sri)))
+slope_mask <- mask(slope, boundary_vect |> project(crs(slope)))
 
 
 #filter attributes of interest
@@ -82,110 +72,81 @@ veg_foc <- veg %>%
 veg_foc = veg_foc |>
   select(BPU, CWHR_Type, Can_Cov, OS_TREE_DIAMETER_CLASS_1)
 
+## find the bad veg polygons
+bad_polys = NULL
+for(i in 1:nrow(veg_foc)) {
+  cat(i, "\n")
+  result= try(st_union(veg_foc[i,]))
+  if(class(result)[1] == "try-error") {
+    bad_polys = c(bad_polys, i)
+  }
+}
+
+veg_keep = setdiff(1:nrow(veg_foc), bad_polys)
+
+veg_foc = veg_foc[veg_keep,]
 veg_foc_union = st_union(veg_foc)
-st_write(veg_foc_union, file.path(datadir, "/spatial/raw/veg_existing_condition_focal.gpkg"))
+st_write(veg_foc_union, file.path(datadir, "/spatial/raw/veg_existing_condition_focal.gpkg"), delete_dsn = TRUE)
+
+veg_foc_union = st_read(file.path(datadir, "/spatial/raw/veg_existing_condition_focal.gpkg"))
 
 
-# remove these
-rd2 = roads %>% filter(OBJECTIVE_ !="D - DECOMMISSION")
-rd1 = roads %>% filter(OBJECTIVE_ !="1 - BASIC CUSTODIAL CARE (CLOSED)")
+### Intersect road buff with focal veg
 
-road_final = bind_rows(rd1, rd2) 
+foc = st_intersection(veg_foc_union, candidate_area)
+st_write(foc, file.path(datadir, "temp/foc.gpkg"), delete_dsn = TRUE)
 
+## define acceptable slope areas: < 60% slope (31 degrees), and nothing with > 60% slope within 120 m
+
+slope_window = focal(slope, w = 5, fun = "max")
+slope_acceptable = slope_window < 31
+slope_poly = as.polygons(slope_acceptable) |> st_as_sf() |> filter(focal_max == 1) |> st_union()
+
+foc = st_intersection(foc, slope_poly)
+
+## constrain to USFS
+
+usfs = st_read(file.path(datadir, "spatial/raw/S_USA.PADUS_Fee/S_USA.PADUS_Fee.shp")) |> st_transform(st_crs(foc))
+usfs = st_intersection(usfs, boundary |> st_transform(st_crs(usfs)))
+
+# buffer in by 100 m
+usfs = st_buffer(usfs, -100)
+foc = st_intersection(foc, usfs)
 
 
 ### Make grid and mask to focal area
 
-grid = st_make_grid(boundary_transform, cellsize = 500, what = "centers")
-grid = st_as_sf(grid)
+grid = st_make_grid(foc, cellsize = 927, what = "centers")
+# grid = st_as_sf(grid)
 
-grid_foc_index = st_intersects(grid, candidate_area, sparse = FALSE)[,1]
-grid_foc = grid[grid_foc_index == TRUE, ]
+grid_foc_index = st_intersects(grid, foc, sparse = FALSE)[,1]
+grid_foc = grid[grid_foc_index == TRUE]
+set.seed(1)
+# randomly subsample 120
+grid_foc = sample(grid_foc, 120)
+grid_foc = st_as_sf(grid_foc)
+grid_foc$dummy = "dummy"
 
-st_write(grid_foc, file.path(datadir, "temp/grid_foc.gpkg"))
-
-
-elev_extract = extract(dem, vect(grid_foc))[,2]
-grid_foc$elev = elev_extract
-
-
-
-#### solar radiation index 
+st_write(grid_foc, file.path(datadir, "temp/grid_foc.gpkg"), delete_dsn = TRUE)
+# st_write(foc, file.path(datadir, "temp/foc.gpkg"), delete_dsn = TRUE)
 
 
-# range of values in sri (32,381 - 135,071)
-# what values are considered north and south slopes?
-# if filtering watch out for Null values that will be added to the raster
+# elev_extract = extract(dem, vect(grid_foc))[,2]
+# grid_foc$elev = elev_extract
 
+# assign IDs
+coords = st_coordinates(grid_foc)
+grid_foc$easting = coords[,1]
+grid_foc$northing = coords[,2]
 
+grid_foc = grid_foc |>
+  arrange(easting, northing) |>
+  mutate(plot_id = paste0("S", str_pad(1:nrow(grid_foc), side = "left", width = 3, pad = "0"))) |>
+  select(plot_id)
 
+st_write(grid_foc, file.path(datadir, "temp/grid_foc.gpkg"), delete_dsn = TRUE)
 
-#### dem
-# hi, low elevation
-
-
-
-
-
-
-#### slope 
-
-
-
-
-
-#### roads buffer; 100 m min dist, between 100-400m from road
-
-# need to drop the the M geometry first for the buffer
-rd_final_noM <- st_zm(rd_final, drop = TRUE, what = "ZM")
-
-# needs corrected
-rd_buf <- st_buffer(rd_final_noM, dist = 400)
-plot(rd_buf)
-
-# combine the polygons
-rd_union <- st_union(rd_buf)
-plot(rd_union)
-
-
-
-#### extract data
-
-# extract buffer area from dem, sri and veg layers
-# 
-
-
-
-
-####### combine/merge the layers
-
-
-
-
-
-
-#### add 150 random pts
-## watch out for filtered raster's and Null values within our points
-
-
-
-
-
-
-# graph data extracted from road buffer
-# what is the attribute to graph? How does one see the attributes in a raster?
-
-library(ggplot2)
-
-ggplot(dem, aes(x=Char_group)) + geom_histogram(binwidth=0.5) 
-ggplot(rp, aes(x=Elev)) + geom_histogram(1) 
-ggplot(rp, aes(x=Char_group)) + geom_histogram(binwidth=0.5) 
-
-
-
-
-
-
-
-
+### Save in requested formats
+st_write(grid_foc, file.path(datadir, "selected-plots-for-veg-survey/small-plots_for-iri.kml"), delete_dsn = TRUE)
+st_write(grid_foc, file.path(datadir, "selected-plots-for-veg-survey/small-plots_for-iri.shp"), delete_dsn = TRUE)
 
