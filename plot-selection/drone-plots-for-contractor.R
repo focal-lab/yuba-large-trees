@@ -42,14 +42,14 @@ st_write(candidates, file.path(datadir, "selected-plots-for-veg-survey/large-plo
 coords = st_coordinates(candidates)
 
 candidates = candidates |>
-  select(plot_id = plot_id_drone, contractor_note) |>
+  select(plot_id = plot_id_drone, contractor_note, drone_collection_completed) |>
   mutate(lon = coords[,1], lat = coords[,2]) |>
   arrange(contractor_note, plot_id) |>
   mutate(plot_id = paste0("L", str_pad(plot_id, side = "left", pad = "0", width = 3)))
 
 ### Save in requested formats
 candidates_for_iri = candidates |>
-  filter(contractor_note == "a normal") |>
+  filter(contractor_note %in% c("a normal", "wfr&ppn extras, only do if *do* get VP data")) |>
   select(plot_id)
 st_write(candidates_for_iri, file.path(datadir, "selected-plots-for-veg-survey/large-plots_for-iri.kml"), delete_dsn = TRUE)
 st_write(candidates_for_iri, file.path(datadir, "selected-plots-for-veg-survey/large-plots_for-iri.shp"), delete_dsn = TRUE)
