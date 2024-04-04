@@ -1,4 +1,4 @@
-# north-yuba
+# yuba-large-trees
 
 ## Data management approach for this repo
 
