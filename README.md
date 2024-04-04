@@ -17,6 +17,6 @@ Then you can do everything else relative to the root of the data dir. For exampl
 dem_path = file.path(datadir, "spatial/intermediate/dem.tif")
 dem = rast(dem_path)
 ```
-This way, you don't need to hard-code the data directory location anywhere except in `data-dir.txt`, and other users only have to modify `data-dir.txt` on their machine in order to point to the location of the data directory on their machine.
+This way, you don't need to hard-code the data directory location anywhere except in `datadir.txt`, and other users only have to modify `datadir.txt` on their machine in order to point to the location of the data directory on their machine.
 
 To work with this data directory on your local machine, you can either download it from Box manually, or use Box Drive to have the folder sync to your computer. The latter approach is recommended so that you automatically get any changes that others make to the data files, and so that your changes automatically update on Box for everyone else who is working with the data.
