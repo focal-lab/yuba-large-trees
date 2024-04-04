@@ -55,6 +55,3 @@ tree_density = full_join(small_tree_dens, large_tree_density, by = "plot_id") |>
   mutate(tree_density = small_tree_density + large_tree_density)
 
 mean(tree_density$tree_density)
-
-mean_trees_per_plot = mean(tree_density$tree_density) * 0.15
-mean_trees_per_plot
