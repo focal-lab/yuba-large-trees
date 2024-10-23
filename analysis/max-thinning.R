@@ -72,7 +72,9 @@ plot_summaries <- plot_summaries %>% add_column(unthinned_ba_m2ha = "")
 
 plot_summaries <- plot_summaries %>% add_column(unthinned_density_tph = "")
 
-# each plot (both small + large radii) is 0.1050708628 hectare. unthinned basal area (m2/ha) is the sum of all the basal areas in the plot divided by the area in hectares. unthinned density (trees per hectare) is the number of trees in the plot divided by the area in hectares. automate these calculations.
+# large plots (all trees >10" DBH) are 0.1050708628 hectare. small plots (all trees <=10") are 0.0262677157 hectare. 
+
+#unthinned basal area (m2/ha) is the sum of 1. the sum of the basal areas of trees >10" DBH divided by 0.1050708628 plus 2. the sum of the basal areas of trees <=10" DBH divided by 0.0262677157. unthinned density (trees per hectare) is the sum of 1. the number of trees >10" DBH divided by 0.1050708628 plus 2. the number of trees <=10" DBH divided by 0.0262677157. automate these calculations.
 
 for(i in 1:nrow(plot_summaries)) {
   
@@ -80,15 +82,19 @@ for(i in 1:nrow(plot_summaries)) {
   
   assign(paste0(plot_id_current), (trees %>% filter (Plot. == paste0(plot_id_current))))
   
-  plot_summaries$unthinned_density_tph[i] = (nrow(get(paste0(plot_id_current)))/0.1050708628) 
+  assign(paste0(plot_id_current, "_largetrees"), (get(paste0(plot_id_current)) %>% filter (DBH..inches. > 10)))
+  
+  assign(paste0(plot_id_current, "_smalltrees"), (get(paste0(plot_id_current)) %>% filter (DBH..inches. <= 10)))
+  
+  plot_summaries$unthinned_density_tph[i] = (sum(get(paste0(plot_id_current))$DBH..inches. > 10)/0.1050708628) + (sum(get(paste0(plot_id_current))$DBH..inches. <= 10)/0.0262677157)
     
-  plot_summaries$unthinned_ba_m2ha[i] = (sum(get(paste0(plot_id_current))$ba_m2)/0.1050708628)
+  plot_summaries$unthinned_ba_m2ha[i] = (sum(get(paste0(plot_id_current, "_largetrees"))$ba_m2)/0.1050708628) + (sum(get(paste0(plot_id_current, "_smalltrees"))$ba_m2)/0.0262677157)
   
 }
 
 # export
 
-# write.csv(plot_summaries, "C:\\Users\\emily\\Desktop\\TNC Yuba\\data\\IRI data\\plot_summaries_unthinned.csv")
+# write.csv(plot_summaries, "C:\\Users\\emily\\Desktop\\TNC Yuba\\data\\IRI data\\plot_summaries_unthinned_corrected.csv")
 
 # add forest type and mixed conifer T/F columns
 
@@ -169,9 +175,13 @@ for(i in 1:nrow(plot_summaries)) {
   
   above_cap <- filter(get(paste0(plot_id_current)), DBH..inches. >= diam_cutoff_in)
   
-  plot_summaries$thinned_density_tph[i] = (nrow(above_cap)/0.1050708628) # consider changing "thinned_density_tph" to include a descriptor of the diameter cutting scenario, e.g. "thinned_density_tph_30in" for the blanket 30 in rule
+  above_cap_largetrees <- filter (above_cap, (DBH..inches. > 10))
   
-  plot_summaries$thinned_ba_m2ha[i] = (sum(above_cap$ba_m2)/0.1050708628) # consider changing "thinned_ba_m2ha" to include a descriptor of the diameter cutting scenario, e.g. "thinned_ba_m2ha_30in" for the blanket 30 in rule
+  above_cap_smalltrees <- filter(above_cap, (DBH..inches. <= 10))
+  
+  plot_summaries$thinned_density_tph[i] = (nrow(above_cap_largetrees)/0.1050708628) + (nrow(above_cap_smalltrees)/0.0262677157) # consider changing "thinned_density_tph" to include a descriptor of the diameter cutting scenario, e.g. "thinned_density_tph_30in" for the blanket 30 in rule
+  
+  plot_summaries$thinned_ba_m2ha[i] = (sum(above_cap_largetrees$ba_m2)/0.1050708628) + (sum(above_cap_smalltrees$ba_m2)/0.0262677157) # consider changing "thinned_ba_m2ha" to include a descriptor of the diameter cutting scenario, e.g. "thinned_ba_m2ha_30in" for the blanket 30 in rule
   
 }
 
@@ -191,9 +201,13 @@ for(i in 1:nrow(plot_summaries)) {
   
   above_cap <- filter(get(paste0(plot_id_current)), DBH..inches. >= diam_cutoff_in)
   
-  plot_summaries$thinned_density_tph_30in[i] = (nrow(above_cap)/0.1050708628) 
+  above_cap_largetrees <- filter (above_cap, (DBH..inches. > 10))
   
-  plot_summaries$thinned_ba_m2ha_30in[i] = (sum(above_cap$ba_m2)/0.1050708628)
+  above_cap_smalltrees <- filter(above_cap, (DBH..inches. <= 10))
+  
+  plot_summaries$thinned_density_tph_30in[i] = (nrow(above_cap_largetrees)/0.1050708628) + (nrow(above_cap_smalltrees)/0.0262677157)
+  
+  plot_summaries$thinned_ba_m2ha_30in[i] = (sum(above_cap_largetrees$ba_m2)/0.1050708628) + (sum(above_cap_smalltrees$ba_m2)/0.0262677157) 
   
 }
 
@@ -213,9 +227,13 @@ for(i in 1:nrow(plot_summaries)) {
   
   above_cap <- filter(get(paste0(plot_id_current)), DBH..inches. >= diam_cutoff_in)
   
-  plot_summaries$thinned_density_tph_40in[i] = (nrow(above_cap)/0.1050708628) 
+  above_cap_largetrees <- filter (above_cap, (DBH..inches. > 10))
   
-  plot_summaries$thinned_ba_m2ha_40in[i] = (sum(above_cap$ba_m2)/0.1050708628)
+  above_cap_smalltrees <- filter(above_cap, (DBH..inches. <= 10))
+  
+  plot_summaries$thinned_density_tph_40in[i] = (nrow(above_cap_largetrees)/0.1050708628) + (nrow(above_cap_smalltrees)/0.0262677157)
+  
+  plot_summaries$thinned_ba_m2ha_40in[i] = (sum(above_cap_largetrees$ba_m2)/0.1050708628) + (sum(above_cap_smalltrees$ba_m2)/0.0262677157) 
   
 }
 
@@ -337,7 +355,7 @@ for(i in 1:nrow(trees)) {
 
 # export 30 and 40 inch blanket rules
 
-# write.csv(plot_summaries, "C:\\Users\\emily\\Desktop\\TNC Yuba\\data\\IRI data\\plot_summaries_thinned_demos.csv")
+# write.csv(plot_summaries, "C:\\Users\\emily\\Desktop\\TNC Yuba\\data\\IRI data\\plot_summaries_thinned_demos_corrected.csv")
 
 #### Graph results ####
 
@@ -354,6 +372,8 @@ plot_summaries$thinned_ba_m2ha_40in <- as.numeric(plot_summaries$thinned_ba_m2ha
 plot_summaries$thinned_density_tph_40in <- as.numeric(plot_summaries$thinned_density_tph_40in)
 
 # make a subset of plot_summaries that only has mixed conifer plots
+
+# plot_summaries <- read.csv("C:\\Users\\emily\\Desktop\\TNC Yuba\\data\\IRI data\\plot_summaries_thinned_demos_corrected.csv")
 
 plot_summaries_mixedconifer <- subset (plot_summaries, mixed_conifer == TRUE)
 
@@ -452,7 +472,7 @@ plot_ba_unthinned <- as.data.frame(plot_bas[,-(2:3)])
 plot_ba_unthinned$thinning_scenario <- "unthinned"
 plot_ba_unthinned <- plot_ba_unthinned %>% rename("ba_m2ha" = 1)
 
-plot_ba_30 <- plot_bas[,-1]
+plot_ba_30 <- plot_bas[,-(1)]
 plot_ba_30$thinning_scenario <- "30 inch rule"
 plot_ba_30 <- plot_ba_30[,-2]
 plot_ba_30 <- plot_ba_30 %>% rename("ba_m2ha" = 1)

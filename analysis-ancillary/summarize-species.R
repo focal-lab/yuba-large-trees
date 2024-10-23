@@ -122,3 +122,4 @@ for(i in 1:nrow(spp)) {
 
 write.csv(spp, "C:\\Users\\emily\\Desktop\\TNC Yuba\\data\\IRI data\\species_summaries_for_scenario_determination.csv")
 
+species_summary <- read.csv("C:\\Users\\emily\\Desktop\\TNC Yuba\\data\\IRI data\\species_summaries_for_scenario_determination.csv")
