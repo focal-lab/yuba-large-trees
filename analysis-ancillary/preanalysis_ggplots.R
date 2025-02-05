@@ -58,7 +58,7 @@ trees$spp_alpha[trees$Species == '818'] <- 'QUKE'
 trees$spp_alpha[trees$Species == '839'] <- 'QUWI2' 
 
 # calculate basal area for each tree
- 
+
 trees <- trees %>%
   add_column(ba_m2 = "")
 
@@ -89,7 +89,7 @@ for(i in 1:nrow(plot_summaries)) {
   assign(paste0(plot_id_current, "_smalltrees"), (get(paste0(plot_id_current)) %>% filter (DBH..inches. <= 10)))
   
   plot_summaries$unthinned_density_tph[i] = (sum(get(paste0(plot_id_current))$DBH..inches. > 10)/0.1050708628) + (sum(get(paste0(plot_id_current))$DBH..inches. <= 10)/0.0262677157)
-    
+  
   plot_summaries$unthinned_ba_m2ha[i] = (sum(get(paste0(plot_id_current, "_largetrees"))$ba_m2)/0.1050708628) + (sum(get(paste0(plot_id_current, "_smalltrees"))$ba_m2)/0.0262677157)
   
 }
@@ -133,7 +133,7 @@ for(i in 1:nrow(plot_summaries)) {
     plot_summaries$mixed_conifer[i] = "TRUE"
     
   }
-
+  
   else if((plot_summaries[i,]$forest_type) == "201 – Douglas-fir") {
     
     plot_summaries$mixed_conifer[i] = "TRUE"
@@ -256,7 +256,7 @@ for(i in 1:nrow(trees)) {
     trees$diam_cutoff_in[i] = ""
     
   }
-
+  
   else if((trees[i,]$spp_alpha) == "ACMA3") {
     
     trees$diam_cutoff_in[i] = ""
@@ -493,7 +493,7 @@ violin_density_thinned
 
 violin_unthinned_ba <- 
   ggplot(plot_summaries_mixedconifer, aes(x="", y=unthinned_ba_m2ha)) +
- # ylim(0,1600) +
+  # ylim(0,1600) +
   labs(title="Unthinned plot basal area", x="", y="ba_m2ha") +
   geom_violin() + 
   geom_boxplot(width=0.1) +
@@ -527,7 +527,7 @@ plot_bas_2column <- full_join(plot_bas_2column, plot_ba_unthinned)
 
 violin_all_bas <- 
   ggplot(plot_bas_2column, aes(x=thinning_scenario, y=ba_m2ha, fill = thinning_scenario)) +
-#  ylim(0,850) +
+  #  ylim(0,850) +
   labs(title="Plot basal areas", x="Thinning scenario", y="Basal area (m2 per ha)") +
   geom_violin() + 
   geom_boxplot(width=0.01) +
