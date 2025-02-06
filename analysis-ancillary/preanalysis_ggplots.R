@@ -14,7 +14,9 @@ trees <- read.csv("C:\\Users\\empurvis\\Box\\TNC_Yuba\\data\\IRI data\\field_tre
 
 plots <- read.csv("C:\\Users\\empurvis\\Box\\TNC_Yuba\\data\\IRI data\\field_plots.csv")
 
-megaplots <- read.csv("C:\\Users\\empurvis\\Box\\TNC_Yuba\\data\\megaplots_116.csv")
+megaplots05ha <- read.csv("C:\\Users\\empurvis\\Box\\TNC_Yuba\\data\\megaplots_116_point5ha.csv")
+
+megaplots1ha <- read.csv("C:\\Users\\empurvis\\Box\\TNC_Yuba\\data\\megaplots_116_1ha.csv")
 
 # Add species alphabetical codes for clarity
 
@@ -381,39 +383,89 @@ plot_summaries_mixedconifer <- subset (plot_summaries, mixed_conifer == TRUE)
 
 ## make a data.frame of megaplot info equivalent to plot_summaries_mixedconifer. note that these mega-plots only have mixed conifer plots.
 
+## start with 0.5 ha megaplots
+
 # make data.frame with megaplot_id and bpu number
 
-megaplot_id <- c(1:500)
+megaplot_05ha_id <- c(1:500)
 
-megaplot_summaries <- as.data.frame(megaplot_id)
+megaplot_05ha_summaries <- as.data.frame(megaplot_05ha_id)
 
-megaplot_summaries <- megaplot_summaries %>% add_column(bpu=0)
+megaplot_05ha_summaries <- megaplot_05ha_summaries %>% add_column(bpu=0)
 
-megaplot_summaries[1:129,2] <- 1 # bpu 1 plots
+megaplot_05ha_summaries[1:129,2] <- 1 # bpu 1 plots
 
-megaplot_summaries[130:254,2] <- 2 # bpu 2 plots
+megaplot_05ha_summaries[130:254,2] <- 2 # bpu 2 plots
 
-megaplot_summaries[255:366,2] <- 3 # bpu 3 plots
+megaplot_05ha_summaries[255:366,2] <- 3 # bpu 3 plots
 
-megaplot_summaries[367:500,2] <- 4 # bpu 4 plots
+megaplot_05ha_summaries[367:500,2] <- 4 # bpu 4 plots
 
 # add unthinned density and ba using same code as above
 
-megaplot_summaries <- megaplot_summaries %>% add_column(unthinned_ba_m2ha = "")
+megaplot_05ha_summaries <- megaplot_05ha_summaries %>% add_column(unthinned_ba_m2ha = "")
 
-megaplot_summaries <- megaplot_summaries %>% add_column(unthinned_density_tph = "")
+megaplot_05ha_summaries <- megaplot_05ha_summaries %>% add_column(unthinned_density_tph = "")
 
-for(i in 1:nrow(megaplot_summaries)) {
+for(i in 1:nrow(megaplot_05ha_summaries)) {
   
-  plot_id_current = megaplot_summaries[i,]$megaplot_id
+  plot_id_current = megaplot_05ha_summaries[i,]$megaplot_05ha_id
   
-  assign(paste0(plot_id_current), (megaplots %>% filter (megaplot_id == paste0(plot_id_current))))
+  assign(paste0(plot_id_current), (megaplots05ha %>% filter (megaplot_id == paste0(plot_id_current))))
   
-  megaplot_summaries$unthinned_density_tph[i] = (nrow(get(paste0(plot_id_current)))/0.5253543)
+  megaplot_05ha_summaries$unthinned_density_tph[i] = (nrow(get(paste0(plot_id_current)))/0.5253543)
   
-  megaplot_summaries$unthinned_ba_m2ha[i] = (sum(get(paste0(plot_id_current))$ba_m2)/0.5253543)
+  megaplot_05ha_summaries$unthinned_ba_m2ha[i] = (sum(get(paste0(plot_id_current))$ba_m2)/0.5253543)
   
 }
+
+megaplot_05ha_summaries$unthinned_density_tph <- as.numeric(megaplot_05ha_summaries$unthinned_density_tph)
+
+megaplot_05ha_summaries$unthinned_ba_m2ha <- as.numeric(megaplot_05ha_summaries$unthinned_ba_m2ha)
+
+## repeat with 1 ha megaplots
+
+# make data.frame with megaplot_id and bpu number
+
+megaplot_1ha_id <- c(1:500)
+
+megaplot_1ha_summaries <- as.data.frame(megaplot_1ha_id)
+
+megaplot_1ha_summaries <- megaplot_1ha_summaries %>% add_column(bpu=0)
+
+megaplot_1ha_summaries[1:129,2] <- 1 # bpu 1 plots
+
+megaplot_1ha_summaries[130:254,2] <- 2 # bpu 2 plots
+
+megaplot_1ha_summaries[255:366,2] <- 3 # bpu 3 plots
+
+megaplot_1ha_summaries[367:500,2] <- 4 # bpu 4 plots
+
+# add unthinned density and ba using same code as above
+
+megaplot_1ha_summaries <- megaplot_1ha_summaries %>% add_column(unthinned_ba_m2ha = "")
+
+megaplot_1ha_summaries <- megaplot_1ha_summaries %>% add_column(unthinned_density_tph = "")
+
+for(i in 1:nrow(megaplot_1ha_summaries)) {
+  
+  plot_id_current = megaplot_1ha_summaries[i,]$megaplot_1ha_id
+  
+  assign(paste0(plot_id_current), (megaplots1ha %>% filter (megaplot_id == paste0(plot_id_current))))
+  
+  megaplot_1ha_summaries$unthinned_density_tph[i] = (nrow(get(paste0(plot_id_current)))/1.050709)
+  
+  megaplot_1ha_summaries$unthinned_ba_m2ha[i] = (sum(get(paste0(plot_id_current))$ba_m2)/1.050709)
+  
+}
+
+megaplot_1ha_summaries$unthinned_density_tph <- as.numeric(megaplot_1ha_summaries$unthinned_density_tph)
+
+megaplot_1ha_summaries$unthinned_ba_m2ha <- as.numeric(megaplot_1ha_summaries$unthinned_ba_m2ha)
+
+
+
+
 
 
 #### Violin plots ####
@@ -581,19 +633,28 @@ histo_all_bas <-
 
 histo_all_bas
 
+
+
+
 ## histogram with unthinned plot density vs unthinned megaplot density
 
 # make a combined data.frame with all unthinned density values and corresponding dataset
 
 plot_density <- as.data.frame(as.numeric(plot_summaries_mixedconifer$unthinned_density_tph)) %>% rename (unthinned_density_tph = 1)
 
-megaplot_density <- as.data.frame(as.numeric(megaplot_summaries$unthinned_density_tph)) %>% rename (unthinned_density_tph = 1)
+megaplot_05ha_density <- as.data.frame(as.numeric(megaplot_05ha_summaries$unthinned_density_tph)) %>% rename (unthinned_density_tph = 1)
+
+megaplot_1ha_density <- as.data.frame(as.numeric(megaplot_1ha_summaries$unthinned_density_tph)) %>% rename (unthinned_density_tph = 1)
 
 plot_density$dataset = "unthinned plots"
 
-megaplot_density$dataset = "unthinned megaplots"
+megaplot_05ha_density$dataset = "unthinned 0.5 ha megaplots"
 
-densityresults_forplotting <- full_join(plot_density, megaplot_density)
+megaplot_1ha_density$dataset = "unthinned 1 ha megaplots"
+
+densityresults_forplotting <- full_join(plot_density, megaplot_05ha_density)
+
+densityresults_forplotting <- full_join(densityresults_forplotting, megaplot_1ha_density)
 
 # cut data
 
@@ -629,13 +690,19 @@ ggplot(data=densityresults_forplotting,
 
 plot_ba <- as.data.frame(as.numeric(plot_summaries_mixedconifer$unthinned_ba_m2ha)) %>% rename (unthinned_ba_m2ha = 1)
 
-megaplot_ba <- as.data.frame(as.numeric(megaplot_summaries$unthinned_ba_m2ha)) %>% rename (unthinned_ba_m2ha = 1)
+megaplot_05ha_ba <- as.data.frame(as.numeric(megaplot_05ha_summaries$unthinned_ba_m2ha)) %>% rename (unthinned_ba_m2ha = 1)
+
+megaplot_1ha_ba <- as.data.frame(as.numeric(megaplot_1ha_summaries$unthinned_ba_m2ha)) %>% rename (unthinned_ba_m2ha = 1)
 
 plot_ba$dataset = "unthinned plots"
 
-megaplot_ba$dataset = "unthinned megaplots"
+megaplot_05ha_ba$dataset = "unthinned 0.5 ha megaplots"
 
-baresults_forplotting <- full_join(plot_ba, megaplot_ba)
+megaplot_1ha_ba$dataset = "unthinned 1 ha megaplots"
+
+baresults_forplotting <- full_join(plot_ba, megaplot_05ha_ba)
+
+baresults_forplotting <- full_join(baresults_forplotting, megaplot_1ha_ba)
 
 # cut data
 
@@ -689,7 +756,9 @@ simulated_ba$dataset = "NRV simulation"
 
 # density histo
 
-densityresults_forplotting <- full_join(plot_density, megaplot_density)
+densityresults_forplotting <- full_join(plot_density, megaplot_05ha_density)
+
+densityresults_forplotting <- full_join(densityresults_forplotting, megaplot_1ha_density)
 
 densityresults_forplotting <- full_join(densityresults_forplotting, simulated_tph)
 
@@ -715,7 +784,9 @@ ggplot(data=densityresults_forplotting,
 
 # ba histo
 
-baresults_forplotting <- full_join(plot_ba, megaplot_ba)
+baresults_forplotting <- full_join(plot_ba, megaplot_05ha_ba)
+
+baresults_forplotting <- full_join(baresults_forplotting, megaplot_1ha_ba)
 
 baresults_forplotting <- full_join(baresults_forplotting, simulated_ba)
 
@@ -738,3 +809,5 @@ ggplot(data=baresults_forplotting,
   scale_x_discrete(labels = ba_labels) +
   ylab("Percentage of plots") +
   xlab("Basal area (m2/ha)")
+
+
